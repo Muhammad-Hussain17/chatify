@@ -3,7 +3,13 @@ import { isSpoofedBot } from "@arcjet/inspect";
 
 export const arcjetProtection = async (req,res,next) =>{
     try {
-        const decision = await aj.decide(req);
+        const ua = req.headers["user-agent"] || "";
+
+    // Skip Arcjet for Postman or local dev tools
+    if (ua.includes("Postman") || ua.includes("Insomnia")) {
+      return next();
+    }   
+        const decision = await aj.protect(req);
 
         if(decision.isDenied()){
             if(decision.reason.isRateLimit()){
@@ -21,7 +27,7 @@ export const arcjetProtection = async (req,res,next) =>{
 
     //check for spoof bot
     if(decision.results.some(isSpoofedBot)){
-        return res.stuatus(403).json({error: "Spoofed bot detected", message: "Malicious bot activity detected"});
+        return res.status(403).json({error: "Spoofed bot detected", message: "Malicious bot activity detected"});
     }
     next()
     } catch (error) {
